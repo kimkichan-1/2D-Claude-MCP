@@ -16,7 +16,8 @@ public class WeaponController : MonoBehaviour
     public bool useMouseDirection = true;  // 마우스 방향 사용 여부
     
     private Camera mainCamera;
-    private bool isAttacking = false;
+        private System.Collections.Generic.HashSet<EnemyController> hitEnemiesThisAttack = new System.Collections.Generic.HashSet<EnemyController>();
+private bool isAttacking = false;
     private PlayerController playerController;
     
     private void Start()
@@ -72,6 +73,9 @@ public class WeaponController : MonoBehaviour
     {
         isAttacking = true;
         
+        // 이번 공격에서 맞은 적들 목록 초기화
+        hitEnemiesThisAttack.Clear();
+        
         // 공격 시작 시 무기 표시
         if (currentWeapon != null)
         {
@@ -99,6 +103,7 @@ public class WeaponController : MonoBehaviour
         
         float elapsedTime = 0f;
         Vector3 attackCenter = weaponHand.position;
+        bool hasAttacked = false; // 한 번만 공격하도록 플래그
         
         while (elapsedTime < attackDuration)
         {
@@ -108,10 +113,11 @@ public class WeaponController : MonoBehaviour
             // 무기 회전
             currentWeapon.transform.rotation = Quaternion.Euler(0, 0, currentAngle);
             
-            // 공격 판정 (중간 지점에서만)
-            if (progress >= 0.4f && progress <= 0.6f)
+            // 공격 판정 (중간 지점에서 한 번만)
+            if (!hasAttacked && progress >= 0.4f && progress <= 0.6f)
             {
                 CheckAttackHit(attackCenter, currentAngle);
+                hasAttacked = true; // 한 번 공격했으므로 플래그 설정
             }
             
             elapsedTime += Time.deltaTime;
@@ -149,14 +155,20 @@ public class WeaponController : MonoBehaviour
     
     private void CheckAttackHit(Vector3 center, float angle)
     {
-        // TODO: 부채꼴 범위 내의 적들을 찾아 데미지 적용
-        // 현재는 간단한 원형 범위로 구현
+        // 범위 내의 적들을 찾아 데미지 적용
         Collider2D[] hits = Physics2D.OverlapCircleAll(center, 1.5f, enemyLayer);
         
         foreach (Collider2D hit in hits)
         {
-            // 적에게 데미지 적용 (나중에 Enemy 스크립트와 연동)
-            Debug.Log($"Hit enemy: {hit.name} for {attackDamage} damage");
+            // Enemy에게 데미지 적용
+            EnemyController enemy = hit.GetComponent<EnemyController>();
+            if (enemy != null && !hitEnemiesThisAttack.Contains(enemy))
+            {
+                // 이번 공격에서 아직 맞지 않은 적에게만 데미지
+                enemy.TakeDamage(attackDamage);
+                hitEnemiesThisAttack.Add(enemy); // 맞은 적 목록에 추가
+                Debug.Log($"Hit enemy: {hit.name} for {attackDamage} damage");
+            }
         }
     }
     
