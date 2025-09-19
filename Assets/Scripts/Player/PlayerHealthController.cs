@@ -21,12 +21,14 @@ public class PlayerHealthController : MonoBehaviour
     public UnityEvent OnPlayerRespawned;
     
     private PlayerController playerController;
+    private PlayerAnimationController animationController;
     private SpriteRenderer spriteRenderer;
     private Rigidbody2D rb;
     
     void Start()
     {
         playerController = GetComponent<PlayerController>();
+        animationController = GetComponent<PlayerAnimationController>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         rb = GetComponent<Rigidbody2D>();
         
@@ -74,8 +76,14 @@ public class PlayerHealthController : MonoBehaviour
         respawnPosition = newRespawnPosition;
     }
     
-    private void Die()
+private void Die()
     {
+        // 사망 애니메이션 재생
+        if (animationController != null)
+        {
+            animationController.PlayDeathAnimation();
+        }
+        
         // 플레이어 입력 비활성화
         if (playerController != null)
             playerController.enabled = false;
@@ -91,7 +99,7 @@ public class PlayerHealthController : MonoBehaviour
         Invoke(nameof(Respawn), respawnDelay);
     }
     
-    private void Respawn()
+private void Respawn()
     {
         // 위치 리셋
         transform.position = respawnPosition;
@@ -99,6 +107,12 @@ public class PlayerHealthController : MonoBehaviour
         // 체력 복구
         currentHealth = maxHealth;
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
+        
+        // 사망 애니메이션 리셋
+        if (animationController != null)
+        {
+            animationController.ResetDeathAnimation();
+        }
         
         // 플레이어 컨트롤 재활성화
         if (playerController != null)

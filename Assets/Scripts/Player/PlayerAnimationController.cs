@@ -10,10 +10,13 @@ public class PlayerAnimationController : MonoBehaviour
     private readonly string ANIM_IS_MOVING = "IsMoving";
     private readonly string ANIM_IS_GROUNDED = "IsGrounded";
     private readonly string ANIM_VERTICAL_SPEED = "VerticalSpeed";
+    private readonly string ANIM_IS_DEAD = "IsDead";
+    private readonly string ANIM_DEATH_TRIGGER = "Death";
     
     private PlayerController playerController;
     private Rigidbody2D rb;
     private bool wasMoving = false;
+    private bool isDead = false;
     
     private void Awake()
     {
@@ -30,6 +33,10 @@ public class PlayerAnimationController : MonoBehaviour
     private void Update()
     {
         UpdateAnimationParameters();
+        
+        // 사망 상태일 때는 다른 애니메이션 비활성화
+        if (isDead) return;
+UpdateAnimationParameters();
     }
     
     private void UpdateAnimationParameters()
@@ -53,6 +60,36 @@ public class PlayerAnimationController : MonoBehaviour
             Debug.Log($"Player animation: {(isMoving ? "Moving" : "Idle")}");
             wasMoving = isMoving;
         }
+    }
+    
+    public void PlayDeathAnimation()
+    {
+        if (animator == null) return;
+        
+        isDead = true;
+        
+        // 사망 애니메이션 재생
+        animator.SetBool(ANIM_IS_DEAD, true);
+        animator.SetTrigger(ANIM_DEATH_TRIGGER);
+        
+        Debug.Log("Player death animation played");
+    }
+    
+    public void ResetDeathAnimation()
+    {
+        if (animator == null) return;
+        
+        isDead = false;
+        
+        // 사망 애니메이션 리셋
+        animator.SetBool(ANIM_IS_DEAD, false);
+        
+        Debug.Log("Player death animation reset");
+    }
+    
+    public bool IsDeadAnimationPlaying()
+    {
+        return isDead;
     }
     
     private bool CheckGrounded()
