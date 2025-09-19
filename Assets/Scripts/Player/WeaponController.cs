@@ -29,16 +29,37 @@ public class WeaponController : MonoBehaviour
         {
             CreateDefaultWeapon();
         }
+        
+        // 처음에는 무기를 숨김
+        if (currentWeapon != null)
+        {
+            currentWeapon.SetActive(false);
+        }
     }
     
     private void Update()
     {
+        // WeaponHand 위치를 캐릭터 방향에 따라 조정
+        UpdateWeaponHandPosition();
+        
         // 마우스 방향에 따른 무기 기본 각도 설정
         if (useMouseDirection && currentWeapon != null)
         {
             UpdateWeaponDirection();
         }
     }
+
+    private void UpdateWeaponHandPosition()
+    {
+        if (weaponHand != null && playerController != null)
+        {
+            // 캐릭터가 바라보는 방향에 따라 WeaponHand x 위치 조정
+            Vector3 handPos = weaponHand.localPosition;
+            handPos.x = playerController.facingRight ? 0.3f : -0.3f;
+            weaponHand.localPosition = handPos;
+        }
+    }
+
     
     public void PerformAttack()
     {
@@ -51,9 +72,30 @@ public class WeaponController : MonoBehaviour
     {
         isAttacking = true;
         
-        // 공격 시작 각도와 끝 각도 계산
-        float startAngle = GetCurrentWeaponAngle() - (attackAngle / 2f);
-        float endAngle = GetCurrentWeaponAngle() + (attackAngle / 2f);
+        // 공격 시작 시 무기 표시
+        if (currentWeapon != null)
+        {
+            currentWeapon.SetActive(true);
+        }
+        
+        // 마우스 방향을 기준으로 ±60도 범위로 공격
+        float mouseAngle = GetMouseAngle();
+        
+        float startAngle, endAngle;
+        
+        // 캐릭터 방향에 따라 공격 방향 조정 (항상 아래에서 위로)
+        if (playerController != null && playerController.facingRight)
+        {
+            // 오른쪽을 볼 때: 아래에서 위로
+            startAngle = mouseAngle + 60f;
+            endAngle = mouseAngle - 60f;
+        }
+        else
+        {
+            // 왼쪽을 볼 때: 아래에서 위로
+            startAngle = mouseAngle - 60f;
+            endAngle = mouseAngle + 60f;
+        }
         
         float elapsedTime = 0f;
         Vector3 attackCenter = weaponHand.position;
@@ -76,35 +118,33 @@ public class WeaponController : MonoBehaviour
             yield return null;
         }
         
+        // 공격 종료 시 무기 숨김
+        if (currentWeapon != null)
+        {
+            currentWeapon.SetActive(false);
+        }
+        
         isAttacking = false;
     }
     
     private void UpdateWeaponDirection()
     {
-        if (mainCamera == null) return;
+        // 공격 중이 아닐 때는 무기가 비활성화되어 있으므로 아무것도 하지 않음
+        // (공격 중에만 무기가 보이므로 기본 방향 설정 불필요)
+    }
+    
+    private float GetMouseAngle()
+    {
+        if (mainCamera == null || weaponHand == null) return 0f;
         
         Vector3 mousePosition = Input.mousePosition;
         Vector3 worldMousePosition = mainCamera.ScreenToWorldPoint(new Vector3(mousePosition.x, mousePosition.y, mainCamera.transform.position.z));
         
         Vector2 direction = (worldMousePosition - weaponHand.position).normalized;
-        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        // x에 음수를 붙여서 좌우 방향 수정
+        float angle = Mathf.Atan2(-direction.x, direction.y) * Mathf.Rad2Deg;
         
-        // 캐릭터가 왼쪽을 보고 있으면 각도 조정
-        if (playerController != null && !playerController.facingRight)
-        {
-            angle = 180f - angle;
-        }
-        
-        // 공격 중이 아닐 때만 기본 방향 설정
-        if (!isAttacking)
-        {
-            currentWeapon.transform.rotation = Quaternion.Euler(0, 0, angle);
-        }
-    }
-    
-    private float GetCurrentWeaponAngle()
-    {
-        return currentWeapon.transform.eulerAngles.z;
+        return angle;
     }
     
     private void CheckAttackHit(Vector3 center, float angle)
@@ -132,8 +172,8 @@ public class WeaponController : MonoBehaviour
         weaponRenderer.color = Color.gray;
         weaponRenderer.sortingOrder = 1;
         
-        // 임시 사각형 스프라이트 생성 (검 모양)
-        Texture2D weaponTexture = new Texture2D(4, 20);
+        // 더 큰 사각형 스프라이트 생성 (검 모양)
+        Texture2D weaponTexture = new Texture2D(8, 40); // 크기를 2배로 증가
         for (int i = 0; i < weaponTexture.width * weaponTexture.height; i++)
         {
             weaponTexture.SetPixel(i % weaponTexture.width, i / weaponTexture.width, Color.white);
