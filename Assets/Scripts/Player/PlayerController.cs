@@ -23,6 +23,7 @@ public class PlayerController : MonoBehaviour
     private Camera playerCamera;
     private PlayerAnimationController animationController;
     private WeaponController weaponController;
+    private PlayerHealthController healthController;
     public bool facingRight = true; // WeaponController가 참조할 수 있도록 public
     
     // Input System Actions
@@ -36,6 +37,15 @@ public class PlayerController : MonoBehaviour
         playerCamera = Camera.main;
         animationController = GetComponent<PlayerAnimationController>();
         weaponController = GetComponent<WeaponController>();
+        healthController = GetComponent<PlayerHealthController>();
+        
+        // 체력 시스템 이벤트 구독
+        if (healthController != null)
+        {
+            healthController.OnPlayerDied.AddListener(OnPlayerDied);
+            healthController.OnPlayerRespawned.AddListener(OnPlayerRespawned);
+        }
+weaponController = GetComponent<WeaponController>();
 
         // Input System 액션 설정
         var playerInput = GetComponent<PlayerInput>();
@@ -217,6 +227,33 @@ public class PlayerController : MonoBehaviour
                 SaveSystem.Instance.SaveGame(currentSlot, saveData);
                 Debug.Log("Player data saved");
             }
+        }
+    }
+    
+    private void OnPlayerDied()
+    {
+        // 플레이어 사망 시 입력 및 물리 비활성화
+        enabled = false;
+        if (rb != null)
+            rb.linearVelocity = Vector2.zero;
+            
+        Debug.Log("Player died!");
+    }
+    
+    private void OnPlayerRespawned()
+    {
+        // 플레이어 부활 시 컨트롤 재활성화
+        enabled = true;
+        Debug.Log("Player respawned!");
+    }
+    
+    private void OnDestroy()
+    {
+        // 이벤트 구독 해제
+        if (healthController != null)
+        {
+            healthController.OnPlayerDied.RemoveListener(OnPlayerDied);
+            healthController.OnPlayerRespawned.RemoveListener(OnPlayerRespawned);
         }
     }
     

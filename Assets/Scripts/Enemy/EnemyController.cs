@@ -135,13 +135,27 @@ private bool isDead = false;
         }
     }
     
-    private void AttackPlayer()
+private void AttackPlayer()
     {
-        // 플레이어에게 피해 주기 (나중에 PlayerHealth 시스템과 연동)
-        Debug.Log($"Enemy attacks player for {attackDamage} damage!");
+        // 플레이어에게 실제 데미지 주기
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            PlayerHealthController playerHealth = player.GetComponent<PlayerHealthController>();
+            if (playerHealth != null && !playerHealth.IsInvincible())
+            {
+                playerHealth.TakeDamage(attackDamage);
+                Debug.Log($"Enemy attacks player for {attackDamage} damage!");
+            }
+        }
         
-        // 공격 이펙트 (색상 변경)
+        // 공격 이팩트 (색상 변경)
         StartCoroutine(AttackFlash());
+        
+        canAttack = false;
+        
+        // 쿨다운 후 다시 공격 가능하게 설정
+        Invoke(nameof(ResetAttack), attackCooldown);
     }
     
     private System.Collections.IEnumerator AttackFlash()
@@ -179,6 +193,11 @@ private bool isDead = false;
         spriteRenderer.color = damageColor;
         yield return new WaitForSeconds(0.2f);
         spriteRenderer.color = normalColor;
+    }
+    
+    private void ResetAttack()
+    {
+        canAttack = true;
     }
     
     private void Die()
