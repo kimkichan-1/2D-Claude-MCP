@@ -1,68 +1,197 @@
 # CLAUDE.md
 
-이 파일은 Claude Code (claude.ai/code)가 이 저장소에서 코드 작업을 할 때 가이드를 제공합니다.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 프로젝트 개요
+## Project Overview
 
-이것은 2D 게임 개발에 중점을 둔 Unity 2D 프로젝트(Unity 6000.0.41f1)입니다. 프로젝트 이름은 "2d Claude MCP"이며 다음을 포함합니다:
-- `com.coplaydev.unity-mcp` 패키지를 통한 Unity MCP (Model Context Protocol) 연동
-- Universal Render Pipeline (URP)을 사용한 2D 게임 개발 기능
-- 현대적인 입력 처리를 위한 Input System
-- Undead Survivor 게임 에셋 (교육/데모 콘텐츠로 보임)
+This is a Unity 2D project (Unity 6000.0.41f1) implementing a zombie survival platformer game inspired by Terraria but with day/night cycle mechanics. The project includes:
+- Unity MCP integration via `com.coplaydev.unity-mcp` for direct Unity Editor control
+- Universal Render Pipeline (URP) 17.0.4 for optimized 2D rendering
+- New Input System 1.13.1 with comprehensive action maps
+- Character-based gameplay with 4 farmer characters (each with unique traits)
+- Persistent save system with 3 save slots supporting JSON serialization
+- BigManJD Platformer Tileset assets for 2D development
+- Day/night survival loop with zombie wave defense mechanics
+- Infection/cure system with character zombification consequences
 
-## Unity MCP 연동
+## Development Commands
 
-이 프로젝트는 Claude Code가 MCP 도구를 통해 Unity와 직접 상호작용할 수 있게 하는 Unity MCP 서버 연동을 포함합니다. 이를 통해 다음이 가능합니다:
-- 스크립트 관리 및 편집
-- 에셋 조작
-- 씬 관리
-- GameObject 작업
-- 실시간 Unity 에디터 제어
+Since this is a Unity project, all build and testing is handled through the Unity Editor:
 
-## 개발 환경
+### Unity Editor Operations
+- **Play Mode Testing**: Use Unity Editor Play button or Unity MCP `manage_editor` action with `"play"`
+- **Build Project**: File → Build Settings in Unity Editor, or use Unity MCP menu operations
+- **Console Debugging**: Use `mcp__UnityMCP__read_console` to check Unity console messages
+- **Scene Management**: Use `mcp__UnityMCP__manage_scene` for loading/saving scenes
 
-### Unity 구성
-- **Unity 버전**: 6000.0.41f1
-- **렌더 파이프라인**: Universal Render Pipeline (URP) 17.0.4
-- **입력 시스템**: New Input System 1.13.1
-- **대상 플랫폼**: 주로 2D 게임
+### Unity MCP Commands
+```
+# Read Unity console for errors/warnings
+mcp__UnityMCP__read_console with action="get"
 
-### 주요 프로젝트 구조
-- `Assets/Scripts/` - 현재 비어있음, C# 스크립트 준비됨
-- `Assets/Scenes/` - SampleScene.unity 및 기타 씬 템플릿 포함
-- `Assets/Sprites/` - 2D 스프라이트 에셋
-- `Assets/Settings/` - URP 및 프로젝트 설정
-- `Assets/Undead Survivor/` - 데모 게임 에셋 및 씬
-- `Assets/InputSystem_Actions.inputactions` - 입력 액션 정의
+# Execute Unity menu items (like builds)
+mcp__UnityMCP__manage_menu_item with action="execute" and menu_path="File/Build Settings"
 
-### 패키지 의존성
-- **Core 2D**: 2D 게임 개발을 위한 `com.unity.feature.2d`
-- **Input System**: 현대적인 입력 처리를 위한 `com.unity.inputsystem`
-- **URP**: 최적화된 렌더링을 위한 `com.unity.render-pipelines.universal`
-- **Unity MCP**: Claude Code 연동을 위한 `com.coplaydev.unity-mcp`
-- **Test Framework**: 단위 테스트를 위한 `com.unity.test-framework`
+# Validate scripts for syntax errors
+mcp__UnityMCP__validate_script with uri="unity://path/Assets/Scripts/..."
+```
 
-## MCP를 통한 Unity 작업
+## Game Architecture
 
-이 프로젝트는 MCP 도구를 통해 Unity와 작업하도록 설정되어 있습니다. 다음이 가능합니다:
-- Unity에서 직접 C# 스크립트 생성 및 편집
-- GameObject 및 컴포넌트 관리
-- 씬 및 에셋 작업
-- 디버깅을 위한 Unity 콘솔 액세스
-- Unity 메뉴 명령 실행
+### Core Systems
+The game follows a modular singleton pattern with these key systems:
 
-## Input System 설정
+**GameManager** (`Assets/Scripts/Managers/GameManager.cs`)
+- Central game state management (pause/resume, night/day cycle)
+- Save slot coordination and quick save (F5 key)
+- Scene transition management
+- Player reference management
 
-프로젝트는 다음과 같은 미리 정의된 액션과 함께 Unity의 새로운 Input System을 사용합니다:
-- 플레이어 이동 (Vector2)
-- 룩/카메라 제어
-- 표준 게임 입력 패턴
+**SaveSystem** (`Assets/Scripts/Save/SaveSystem.cs`)
+- Persistent data management with JSON serialization
+- 3-slot save system with automatic slot validation
+- Save directory: `%USERPROFILE%\AppData\LocalLow\DefaultCompany\2d Claude MCP\Saves`
+- Event-driven save slot updates (`OnSaveSlotsUpdated`)
 
-입력 액션은 `Assets/InputSystem_Actions.inputactions`에 구성되어 있습니다.
+**PlayerController** (`Assets/Scripts/Player/PlayerController.cs`)
+- 2D platformer movement with Rigidbody2D physics
+- New Input System integration with fallback to legacy input
+- Character sprite management (4 farmer variants)
+- Mouse-based sprite flipping and ground detection
+- Automatic save data loading and position restoration
 
-## 개발 참고사항
+### Data Architecture
+**SaveData** (`Assets/Scripts/Save/SaveData.cs`)
+- Comprehensive player state including position, health, inventory, traits
+- Character-specific trait point allocation (0=Combat, 1=Production, 2=Research, 3=Balanced)
+- Day/night cycle progression and infection mechanics
+- Dictionary-based inventory system
 
-- 프로젝트는 현재 최소한의 커스텀 코드를 가지고 있어 빠른 프로토타이핑에 이상적입니다
-- URP는 2D 최적화로 구성되어 있습니다
-- 2D 기능 패키지를 통해 Pixel Perfect Camera 지원이 가능합니다
-- Undead Survivor 데모는 2D 게임 구현 패턴의 예제를 제공합니다
+### Scene Structure
+- **MainScene.unity**: Main menu and character selection (Save slot selection UI)
+- **GameScene.unity**: Primary gameplay scene (Day/night cycle, zombie survival)
+- **SampleScene.unity**: Original demo scene
+
+### Game Design Patterns
+
+**Day/Night Cycle Loop**
+- Day: Farming (food production/sales), exploration (resource gathering), base fortification
+- Night: Zombie wave defense with increasing difficulty over time
+- Money earned during day used for base expansion and NPC survivor hiring
+
+**Infection System Workflow**
+- Zombie bites during night increase infection gauge
+- Cure crafting required with failure probability
+- Failed cure → Character zombification → Save slot loss
+- Zombified characters become world NPCs (can be encountered/defeated/potentially cured)
+- New survivor selection allows game continuation
+
+**Character Progression**
+- Experience-based leveling with stat increases and trait points
+- Starting traits: Combat (damage/crit), Production (farming/crafting), Research (cure success/NPC efficiency)
+- Zombification transforms traits into zombie-specific abilities
+
+## Unity MCP Integration
+
+**ALWAYS use Unity MCP tools for Unity operations instead of traditional file tools:**
+
+### Script Management
+- `mcp__UnityMCP__create_script` - Create new C# scripts with proper Unity structure
+- `mcp__UnityMCP__script_apply_edits` - Structured edits (methods/classes) with safer boundaries
+- `mcp__UnityMCP__apply_text_edits` - Precise line/column text replacements
+- `mcp__UnityMCP__validate_script` - Check script syntax and common Unity issues
+
+### Scene and GameObject Operations
+- `mcp__UnityMCP__manage_scene` - Load, save, create scenes and get hierarchy
+- `mcp__UnityMCP__manage_gameobject` - Create, modify, find GameObjects and components
+- `mcp__UnityMCP__manage_asset` - Asset operations (import, create, modify, delete)
+
+### Debugging and Editor Control
+- `mcp__UnityMCP__read_console` - Read Unity console messages for errors/warnings
+- `mcp__UnityMCP__manage_editor` - Control Unity editor state (play/pause/tools)
+- `mcp__UnityMCP__manage_menu_item` - Execute Unity menu commands
+
+### Resource Access
+- `mcp__UnityMCP__read_resource` - Read Unity files with proper URI handling
+- `mcp__UnityMCP__find_in_file` - Search within Unity scripts using regex
+- `mcp__UnityMCP__list_resources` - List project files under Assets/
+
+## Input System Configuration
+
+Configured in `Assets/InputSystem_Actions.inputactions` with two action maps:
+
+**Player Map**: Move (Vector2), Look, Attack, Interact (Hold), Crouch, Jump, Sprint, Previous, Next
+**UI Map**: Navigate, Submit, Cancel, Point, Click, RightClick, MiddleClick, ScrollWheel, TrackedDevicePosition, TrackedDeviceOrientation
+
+Supports multiple control schemes: Keyboard & Mouse, Gamepad, Touch, Joystick, XR
+
+## Key Development Patterns
+
+### Singleton Pattern
+- GameManager and SaveSystem use DontDestroyOnLoad singleton pattern
+- Instance null checks with automatic destruction of duplicates
+
+### Save System Integration
+- PlayerController automatically loads character data and position on Start()
+- GameManager coordinates save operations and maintains current slot reference
+- Use `PlayerPrefs.GetInt("CurrentSaveSlot", 0)` for slot persistence across scenes
+
+### Input Handling
+- Primary: New Input System with PlayerInput component and action references
+- Fallback: Legacy Input.GetAxisRaw() for backwards compatibility
+- Mouse input handled separately for sprite direction (not through Input System)
+
+## Script Organization
+
+- `Assets/Scripts/Managers/` - GameManager and system-level singletons
+- `Assets/Scripts/Player/` - PlayerController, CharacterData, PlayerAnimationController
+- `Assets/Scripts/Save/` - SaveSystem, SaveData
+- `Assets/Scripts/UI/` - MainMenuUI, MainMenuUI_TMP
+- `Assets/BigManJD/` - Complete 2D platformer art pipeline and demo scene
+
+## Asset Structure
+
+### Character Assets
+- Farmer sprites: `Assets/Undead Survivor/Sprites/Farmer 0~3` (referenced in Prompt.md)
+- Character selection system supports 4 unique farmer variants with individual traits
+
+### Environment Assets
+- Tilemap textures: `Assets/BigManJD/Platformer Tileset - Pixelart Grasslands/Sprites/Textures/Tiles`
+- Platform-based tilemap system for 2D level construction
+
+## Key Implementation Notes
+
+### Save System Integration
+- Save directory: `%USERPROFILE%\AppData\LocalLow\DefaultCompany\2d Claude MCP\Saves`
+- PlayerController automatically loads character data and position on Start()
+- Use `PlayerPrefs.GetInt("CurrentSaveSlot", 0)` for slot persistence across scenes
+- SaveSystem uses event-driven updates: `OnSaveSlotsUpdated` for UI synchronization
+
+### Input Handling Strategy
+- **Primary**: New Input System with PlayerInput component and action references
+- **Fallback**: Legacy Input.GetAxisRaw() for backwards compatibility
+- **Mouse Control**: Handled separately for sprite direction (not through Input System)
+- **Quick Save**: F5 key triggers GameManager quick save functionality
+
+### Performance Considerations
+- All managers use DontDestroyOnLoad singleton pattern with Instance null checks
+- Automatic cleanup of duplicate manager instances to prevent memory leaks
+- URP 2D renderer optimized for 2D sprite batching and lighting effects
+
+## Procedural World Generation
+
+### Hybrid System Architecture
+- **Core Areas**: Hand-crafted spawn points, major outposts, special dungeons, city ruins
+- **General Areas**: Auto-generated fields, forests, expansion areas using Perlin Noise + biome rules
+- **Special Structures**: Hand-crafted map pieces randomly placed in auto-generated regions
+
+### Chunk System
+- **Chunk Size**: 32x32 tiles
+- **Loading**: Player-centered 3x3 chunk system (9 active chunks)
+- **Biomes**: Plains (grass, trees, farming), Forest (wood, medium danger), Ruins (rare resources, high zombie density), Mountains (minerals, cave systems)
+
+### Performance Optimization
+- Dynamic chunk loading/unloading based on player position
+- Tilemap collider optimization for large worlds
+- Object pooling for enemies and items
+- Sprite Atlas batching for consistent performance
