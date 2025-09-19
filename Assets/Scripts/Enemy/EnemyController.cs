@@ -24,7 +24,8 @@ public class EnemyController : MonoBehaviour
     private bool isPlayerInRange = false;
     private bool canAttack = true;
     private float lastAttackTime;
-    private bool isDead = false;
+        private EnemyAnimationController animationController;
+private bool isDead = false;
     
     // AI 상태
     private enum EnemyState
@@ -37,7 +38,8 @@ public class EnemyController : MonoBehaviour
     
     private void Start()
     {
-        // 컴포넌트 초기화
+                animationController = GetComponent<EnemyAnimationController>();
+// 컴포넌트 초기화
         rb = GetComponent<Rigidbody2D>();
         if (spriteRenderer == null)
             spriteRenderer = GetComponent<SpriteRenderer>();
@@ -156,7 +158,13 @@ public class EnemyController : MonoBehaviour
         currentHealth -= damage;
         Debug.Log($"Enemy took {damage} damage. Health: {currentHealth}/{maxHealth}");
         
-        // 피해 이펙트
+        // 피해 애니메이션 재생
+        if (animationController != null)
+        {
+            animationController.PlayHitAnimation();
+        }
+        
+        // 피해 이팩트
         StartCoroutine(DamageFlash());
         
         // 죽음 체크
@@ -181,11 +189,17 @@ public class EnemyController : MonoBehaviour
         
         Debug.Log("Enemy died!");
         
-        // 죽음 이펙트
+        // 죽음 애니메이션 재생
+        if (animationController != null)
+        {
+            animationController.PlayDeathAnimation();
+        }
+        
+        // 죽음 이팩트
         spriteRenderer.color = Color.gray;
         
-        // 2초 후 제거
-        Destroy(gameObject, 2f);
+        // 3초 후 제거 (죽음 애니메이션이 재생될 시간 여유)
+        Destroy(gameObject, 3f);
     }
     
     private void OnDrawGizmosSelected()
